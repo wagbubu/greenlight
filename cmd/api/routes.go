@@ -1,13 +1,20 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/julienschmidt/httprouter"
+)
 
 func (app *application) routes() http.Handler {
-	mux := http.NewServeMux()
+	router := httprouter.New()
 
-	mux.HandleFunc("GET /v1/healthcheck", app.healthcheckHandler)
-	mux.HandleFunc("POST /v1/movies", app.createNewMovieHandler)
-	mux.HandleFunc("GET /v1/movies/{id}", app.showMovieHandler)
+	router.NotFound = http.HandlerFunc(app.notFoundResponse)
 
-	return mux
+	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
+	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
+	router.HandlerFunc(http.MethodPost, "/v1/movies", app.createMovieHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.showMovieHandler)
+
+	return router
 }

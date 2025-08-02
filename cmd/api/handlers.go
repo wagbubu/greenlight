@@ -8,14 +8,14 @@ import (
 	"github.com/wagbubu/greenlight/internal/data"
 )
 
-func (app *application) createNewMovieHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Create movie handler")
 }
 
 func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDparam(r)
 	if err != nil {
-		http.NotFound(w, r)
+		app.notFoundResponse(w, r)
 		return
 	}
 
@@ -29,10 +29,10 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		Version:   1,
 	}
 
-	err = app.writeJSON(w, http.StatusOK, movie, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
 	if err != nil {
 		app.logger.Println(err)
-		http.Error(w, "something went wrong!", http.StatusInternalServerError)
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 }
