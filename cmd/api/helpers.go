@@ -43,32 +43,44 @@ func (app *application) writeJSON(w http.ResponseWriter, status int, data envelo
 }
 
 func (app *application) readJson(w http.ResponseWriter, r *http.Request, dst interface{}) error {
-	err := json.NewDecoder(r.Body).Decode(dst)
+	maxBytes := 1_048_576 // 1 MB
+	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
 
-	var syntaxError *json.SyntaxError
-	var unmarshalTypeError *json.UnmarshalTypeError
-	var invalidUnmarshalError *json.InvalidUnmarshalError
+	err := decoder.Decode(dst)
+	if err != nil {
+		var syntaxError *json.SyntaxError
+		var unmarshalTypeError *json.UnmarshalTypeError
+		var invalidUnmarshalError *json.InvalidUnmarshalError
 
-	switch {
-	case errors.As(err, &syntaxError):
-		return fmt.Errorf("body contains badly-formed JSON (at character %d)", syntaxError.Offset)
+		switch {
+		case errors.As(err, &syntaxError):
+			return fmt.Errorf("body contains badly-formed JSON (at character %d)", syntaxError.Offset)
 
-	case errors.Is(err, io.ErrUnexpectedEOF):
-		return fmt.Errorf("body containes badly-formed JSON")
+		case errors.Is(err, io.ErrUnexpectedEOF):
+			return fmt.Errorf("body containes badly-formed JSON")
 
-	case errors.As(err, &unmarshalTypeError):
-		if unmarshalTypeError.Field != "" {
-			return fmt.Errorf("body contains incorrect JSON type for field %q", unmarshalTypeError.Field)
+		case errors.As(err, &unmarshalTypeError):
+			if unmarshalTypeError.Field != "" {
+				return fmt.Errorf("body contains incorrect JSON type for field %q", unmarshalTypeError.Field)
+			}
+			return fmt.Errorf("body contains incorrect JSON type (at character %d)", unmarshalTypeError.Offset)
+
+		case errors.Is(err, io.EOF):
+			return fmt.Errorf("body must not be empty")
+
+		case errors.As(err, &invalidUnmarshalError):
+			panic(err)
+
+		default:
+			return err
 		}
-		return fmt.Errorf("body contains incorrect JSON type (at character %d)", unmarshalTypeError.Offset)
-
-	case errors.Is(err, io.EOF):
-		return fmt.Errorf("body must not be empty")
-
-	case errors.As(err, &invalidUnmarshalError):
-		panic(err)
-
-	default:
-		return err
 	}
+	err = decoder.Decode(&struct{}{})
+	if err != io.EOF {
+		return errors.New("body must only contain a single JSON value")
+	}
+
+	return nil
 }
