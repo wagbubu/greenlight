@@ -42,7 +42,7 @@ func (app *application) writeJSON(w http.ResponseWriter, status int, data envelo
 	return nil
 }
 
-func (app *application) readJson(w http.ResponseWriter, r *http.Request, dst interface{}) error {
+func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst interface{}) error {
 	maxBytes := 1_048_576 // 1 MB
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
 	decoder := json.NewDecoder(r.Body)

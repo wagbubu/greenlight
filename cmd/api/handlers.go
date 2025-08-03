@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/wagbubu/greenlight/internal/data"
+	"github.com/wagbubu/greenlight/internal/validator"
 )
 
 func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
@@ -15,10 +16,22 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		Runtime data.Runtime `json:"runtime"`
 		Genres  []string     `json:"genres"`
 	}
-
-	err := app.readJson(w, r, &input)
+	err := app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	movie := &data.Movie{
+		Title:   input.Title,
+		Year:    input.Year,
+		Runtime: input.Runtime,
+		Genres:  input.Genres,
+	}
+	v := validator.New()
+
+	if data.ValidateMovie(v, movie); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
 
@@ -38,7 +51,7 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		ID:        id,
 		CreatedAt: &createdAt,
 		Title:     "Casablanca",
-		Runtime:   &runtime,
+		Runtime:   runtime,
 		Genres:    []string{"drama", "romance", "war"},
 		Version:   1,
 	}
