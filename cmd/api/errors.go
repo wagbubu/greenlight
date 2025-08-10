@@ -43,3 +43,13 @@ func (app *application) badRequestResponse(w http.ResponseWriter, r *http.Reques
 func (app *application) failedValidationResponse(w http.ResponseWriter, r *http.Request, errors map[string]string) {
 	app.errorResponse(w, r, http.StatusUnprocessableEntity, errors)
 }
+
+func (app *application) editConflictResponse(w http.ResponseWriter, r *http.Request) {
+	message := "unable to update the record die to an edit conflict, please try again"
+	app.errorResponse(w, r, http.StatusConflict, message)
+}
+
+func (app *application) requestTimeoutResponse(w http.ResponseWriter, r *http.Request) {
+	message := "request took too long, request timeout"
+	app.errorResponse(w, r, http.StatusRequestTimeout, message)
+}
