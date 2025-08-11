@@ -78,16 +78,16 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (app *application) showMovieListHandler(w http.ResponseWriter, r *http.Request) {
-	movies, err := app.models.Movies.GetAll()
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-	}
-	err = app.writeJSON(w, http.StatusOK, envelope{"movies": movies}, nil)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-	}
-}
+// func (app *application) showMovieListHandler(w http.ResponseWriter, r *http.Request) {
+// 	movies, err := app.models.Movies.GetAll()
+// 	if err != nil {
+// 		app.serverErrorResponse(w, r, err)
+// 	}
+// 	err = app.writeJSON(w, http.StatusOK, envelope{"movies": movies}, nil)
+// 	if err != nil {
+// 		app.serverErrorResponse(w, r, err)
+// 	}
+// }
 
 func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDparam(r)
@@ -181,6 +181,41 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	err = app.writeJSON(w, http.StatusOK, envelope{"message": "movie successfully deleted"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
+
+	var input struct {
+		Title  string   `json:"title"`
+		Genres []string `json:"genres"`
+		data.Filters
+	}
+
+	v := validator.New()
+
+	qs := r.URL.Query()
+
+	input.Title = app.readString(qs, "title", "")
+	input.Genres = app.readCSV(qs, "genres", []string{})
+
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+
+	input.Filters.SortSafelist = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
+
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	movies, err := app.models.Movies.GetAll(input.Title, input.Genres, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+	err = app.writeJSON(w, http.StatusOK, envelope{"movies": movies}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

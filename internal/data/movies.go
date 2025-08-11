@@ -14,13 +14,19 @@ type MovieModel struct {
 	DB *sql.DB
 }
 
-func (m MovieModel) GetAll() ([]*Movie, error) {
-	stmt := `SELECT id, created_at, title, year, runtime, genres, version FROM movies`
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
+	stmt := `
+		SELECT id, created_at, title, year, runtime, genres, version
+		FROM movies
+		WHERE (LOWER(title) = LOWER($1) OR $1 = '') 
+		AND (genres @> $2 OR $2 = '{}')
+		ORDER BY id
+	`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, stmt)
+	rows, err := m.DB.QueryContext(ctx, stmt, title, pq.Array(genres))
 	if err != nil {
 		return nil, err
 	}
@@ -29,14 +35,13 @@ func (m MovieModel) GetAll() ([]*Movie, error) {
 	movies := []*Movie{}
 
 	for rows.Next() {
-		movie := &Movie{}
-
+		var movie Movie
 		err := rows.Scan(&movie.ID, &movie.CreatedAt, &movie.Title, &movie.Year, &movie.Runtime, pq.Array(&movie.Genres), &movie.Version)
 		if err != nil {
 			return nil, err
 		}
 
-		movies = append(movies, movie)
+		movies = append(movies, &movie)
 	}
 
 	if err = rows.Err(); err != nil {
