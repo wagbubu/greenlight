@@ -56,3 +56,8 @@ func (app *application) requestTimeoutResponse(w http.ResponseWriter, r *http.Re
 	message := "request took too long, request timeout"
 	app.errorResponse(w, r, http.StatusRequestTimeout, message)
 }
+
+func (app *application) ratelimitExceededResponse(w http.ResponseWriter, r *http.Request) {
+	message := "rate limit exceeded"
+	app.errorResponse(w, r, http.StatusTooManyRequests, message)
+}
