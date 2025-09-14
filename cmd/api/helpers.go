@@ -123,3 +123,23 @@ func (app *application) readInt(qs url.Values, key string, defaultValue int, v *
 
 	return i
 }
+
+// This is for panic recovery because our panic recovery middleware
+// only recovers panic at handler level, any goroutines spawned
+// within the handlers are out of its reach that's why we need
+// to manually recover from panic within this goroutine
+func (app *application) background(fn func()) {
+	app.wg.Add(1)
+	go func() {
+		defer app.wg.Done()
+
+		defer func() {
+			if err := recover(); err != nil {
+				app.logger.PrintError(fmt.Errorf("%s", err), nil)
+			}
+		}()
+
+		fn()
+	}()
+
+}
