@@ -29,4 +29,3 @@ func (app *application) routes() http.Handler {
 
 	return app.metrics(app.recoverPanic(app.enableCors(app.rateLimit(app.authenticate(router)))))
 }
-	
