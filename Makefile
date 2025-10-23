@@ -79,7 +79,7 @@ linker_flags_staging = '-X main.buildTime=${current_time} -X main.version=${git_
 .PHONY: build/api/production
 build/api/production:
 	@echo 'Building cmd/api...'
-	go build -ldflags=${linker_flags_prod} -o=./bin/production/api ./cmd/api
+	go build -ldflags=${linker_flags_prod} -- ./cmd/api
 	GOOS=linux GOARCH=amd64 go build -ldflags=${linker_flags_prod} -o=./bin/production/linux_amd64/api ./cmd/api
 
 .PHONY: build/api/staging
